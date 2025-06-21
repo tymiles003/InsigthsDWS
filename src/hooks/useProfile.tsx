@@ -72,16 +72,17 @@ export const useProfile = () => {
     mutationFn: async (file: File) => {
       if (!user) throw new Error('User not authenticated');
 
-      // Create a unique filename with user ID prefix for RLS
+      // Create a folder structure with user ID and filename
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const fileName = `avatar.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
 
-      console.log('Uploading avatar with filename:', fileName);
+      console.log('Uploading avatar with file path:', filePath);
 
-      // Upload file to Supabase storage
+      // Upload file to Supabase storage with folder structure
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, {
+        .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
         });
@@ -94,7 +95,7 @@ export const useProfile = () => {
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(fileName);
+        .getPublicUrl(filePath);
 
       console.log('Avatar uploaded, public URL:', publicUrl);
 
