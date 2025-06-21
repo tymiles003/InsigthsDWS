@@ -72,25 +72,31 @@ export const useProfile = () => {
     mutationFn: async (file: File) => {
       if (!user) throw new Error('User not authenticated');
 
-      // Create a unique filename
+      // Create a unique filename with user ID prefix for RLS
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+
+      console.log('Uploading avatar with filename:', fileName);
 
       // Upload file to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, {
+        .upload(fileName, file, {
           cacheControl: '3600',
           upsert: true
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
+
+      console.log('Avatar uploaded, public URL:', publicUrl);
 
       // Update profile with new avatar URL
       const { data, error } = await supabase
@@ -100,7 +106,11 @@ export const useProfile = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Profile update error:', error);
+        throw error;
+      }
+
       return data;
     },
     onSuccess: (data) => {
@@ -111,6 +121,7 @@ export const useProfile = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Avatar upload error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to upload avatar",
